@@ -1,23 +1,23 @@
 package test
-package test
 
 import (
-	"net"
 	"testing"
 	"time"
+
+	ac "net-cat/internal"
 )
 
 func TestClientJoin(t *testing.T) {
-	server := NewServer(2)
+	server := ac.NewServer(2)
 	go server.Run()
 
-	alice := &Client{
+	alice := &ac.Client{
 		Conn:     nil,
 		Name:     "Alice",
 		Messages: make(chan string, 10),
 	}
 
-	bob := &Client{
+	bob := &ac.Client{
 		Conn:     nil,
 		Name:     "Bob",
 		Messages: make(chan string, 10),

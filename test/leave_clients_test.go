@@ -3,13 +3,15 @@ package test
 import (
 	"testing"
 	"time"
+
+	ac "net-cat/internal"
 )
 
 func TestClientLeave(t *testing.T) {
-	server := NewServer(2)
+	server := ac.NewServer(2)
 	go server.Run()
 
-	alice := &Client{Name: "Alice", Messages: make(chan string, 10)}
+	alice := &ac.Client{Name: "Alice", Messages: make(chan string, 10)}
 	server.Join <- alice
 	time.Sleep(20 * time.Millisecond)
 

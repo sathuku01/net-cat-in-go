@@ -1,36 +1,11 @@
-package internal
+package service
 
 import (
 	"fmt"
 	"strings"
 	"sync"
 	"time"
-	"net"
 )
-
-// Client represents a connected user (logic-only, no TCP here)
-type Client struct {
-	Conn 	 net.Conn
-	Name     string
-	Messages chan string // outbound messages to this client
-}
-
-// Server represents the message engine
-type Server struct {
-	Clients   map[string]*Client
-	Broadcast chan Message
-	Join      chan *Client
-	Leave     chan *Client
-	History   []string
-	Mutex     sync.Mutex
-	MaxConn   int
-}
-
-// Message structure sent through Broadcast channel
-type Message struct {
-	Sender  *Client
-	Content string
-}
 
 // NewServer creates a new message engine
 func NewServer(maxConn int) *Server {
@@ -40,7 +15,7 @@ func NewServer(maxConn int) *Server {
 		Join:      make(chan *Client),
 		Leave:     make(chan *Client),
 		History:   []string{},
-		MaxConn:   maxConn,
+		Mutex:     sync.Mutex{},
 	}
 }
 
@@ -51,14 +26,6 @@ func (s *Server) Run() {
 
 		// New client joining
 		case client := <-s.Join:
-			if len(s.Clients) >= s.MaxConn {
-				client.Messages <- "Server is full. Connection rejected."
-				close(client.Messages)
-				continue
-			}
-
-			s.Clients[client.Name] = client
-
 			// Send chat history to new client
 			for _, msg := range s.History {
 				client.Messages <- msg
@@ -71,14 +38,9 @@ func (s *Server) Run() {
 
 		// Client leaving
 		case client := <-s.Leave:
-			if _, exists := s.Clients[client.Name]; exists {
-				delete(s.Clients, client.Name)
-				close(client.Messages)
-
-				leaveMsg := formatSystemMessage(fmt.Sprintf("%s has left our chat.", client.Name))
-				s.addToHistory(leaveMsg)
-				s.broadcastToOthers(leaveMsg, client)
-			}
+			leaveMsg := formatSystemMessage(fmt.Sprintf("%s has left our chat.", client.Name))
+			s.addToHistory(leaveMsg)
+			s.broadcastToOthers(leaveMsg, client)
 
 		// Incoming chat message
 		case msg := <-s.Broadcast:
